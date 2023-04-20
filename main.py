@@ -2,7 +2,8 @@ from flask import redirect, render_template, Flask
 from flask_login import login_user, LoginManager, logout_user, login_required, current_user
 
 from data_db import db_session
-from data_db.questions import Quest
+from data_db.answer import Answer
+from data_db.question import Question
 from data_db.users import User
 from forms.LoginForm import LoginForm
 from forms.QuestionForm import QuestionForm
@@ -12,6 +13,37 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'qwwqrwqrg44t5gfdgfd'
 login_manager = LoginManager()
 login_manager.init_app(app)
+question_ids = []
+users_data = {}
+
+
+def generate_form(question_id):
+    db_sess = db_session.create_session()
+    question = db_sess.query(Question).filter(
+        Question.id == question_id).first()
+    form = QuestionForm()
+    if question.is_radio():
+        del form.checkAnswers
+        choices = []
+        for answer in question.answers:
+            choices.append((answer.id, answer.text))
+        form.radioAnswers.choices = choices
+    else:
+        del form.radioAnswers
+        choices = []
+        for answer in question.answers:
+            choices.append((answer.id, answer.text))
+        form.checkAnswers.choices = choices
+
+    return [form, question]
+
+
+def read_question_ids():
+    db_sess = db_session.create_session()
+    questions = db_sess.query(Question).order_by(Question.id).all()
+    for question in questions:
+        question_ids.append(question.id)
+    pass
 
 
 @app.route('/logout')
@@ -21,21 +53,32 @@ def logout():
     return redirect("/")
 
 
+def reset_user(user_id):
+    del users_data[user_id]
+
+
 @app.route("/", methods=['GET', 'POST'])
 def index():
-    form = QuestionForm()
-    form.Gender.choices = [(1, 'Male1'), (2, 'Female1')]
+    if not current_user.is_authenticated:
+        return redirect("/login")
+
+    if current_user.id not in users_data:
+        users_data[current_user.id] = {'current_question_index': 0}
+
+    [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
+
     if form.validate_on_submit():
-        print(form.Gender.data)
+        if users_data[current_user.id]['current_question_index'] < (len(question_ids) - 1):
+            users_data[current_user.id]['current_question_index'] += 1
+            [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
+        else:
+            reset_user(current_user.id)
+            return render_template("finish.html")
     else:
         print(form.errors)
-
-    db_sess = db_session.create_session()
-    if current_user.is_authenticated:
-        questions = db_sess.query(Quest).all()
-        return render_template("index.html", news=questions, form=form, question='Вопрос')
-    else:
-        return redirect("/login")
+    return render_template("index.html", question=question, form=form,
+                           current_question_index=users_data[current_user.id]['current_question_index'] + 1,
+                           total_questions=len(question_ids))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -85,4 +128,5 @@ def reqister():
 
 if __name__ == '__main__':
     db_session.global_init("db/data.db")
+    read_question_ids()
     app.run(port=8081, host='127.0.0.1')

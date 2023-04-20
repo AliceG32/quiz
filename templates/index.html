@@ -1,19 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Записи в блоге</h1>
+<h1>Вопрос {{ current_question_index }} из {{ total_questions }}</h1>
 <div class="col-md6 border rounded">
 
-    <form action="" method=post>
-        <fieldset>
-            <legend>Contact Form</legend>
+    <form action="" method=post class="p-3">
+            <legend>{{ question.text }}</legend>
             {{ form.hidden_tag() }}
-            {{ question }}
-            <div style=font-size:20px; font-weight:bold; margin-left:150px;>
-                {{ form.Gender.label }} {{ form.Gender }}
-            </div>
-        </fieldset>
+            {% if question.is_radio() %}
+                {{ form.radioAnswers.label }} {{ form.radioAnswers(class_="list-unstyled") }}
+            {% else %}
+                {{ form.checkAnswers.label }} {{ form.checkAnswers(class_="list-unstyled") }}
+            {% endif %}
         <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
     </form>
+
+
 </div>
 {% endblock %}

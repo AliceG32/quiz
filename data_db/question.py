@@ -4,7 +4,7 @@ from sqlalchemy import orm
 
 from data_db.db_session import SqlAlchemyBase
 
-
+# Привязка класса к таблице questions
 class Question(SqlAlchemyBase, UserMixin):
     __tablename__ = 'questions'
 

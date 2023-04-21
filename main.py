@@ -36,6 +36,7 @@ def generate_form(question_id):
             choices.append((answer.id, answer.text))
         form.checkAnswers.choices = choices
 
+    db_sess.close()
     return [form, question]
 
 
@@ -72,7 +73,7 @@ def read_question_ids():
         for a in question.answers:
             if a.correct:
                 correct_answers_count_ += 1
-
+    db_sess.close()
     return correct_answers_count_
 
 
@@ -89,7 +90,6 @@ def reset_user(user_id):
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
-    db_sess = db_session.create_session()
     if not current_user.is_authenticated:
         return redirect("/login")
 
@@ -186,6 +186,7 @@ def reqister():
         user.set_password(form.password.data)
         db_sess.add(user)
         db_sess.commit()
+        db_sess.close()
         return redirect('/login')
     return render_template('register.html', title='Регистрация', form=form)
 

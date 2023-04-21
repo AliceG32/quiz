@@ -49,6 +49,7 @@ def count_correct_answers(form, question):
                 result += 1
                 break
     else:
+        # создание множества ответов из формы
         answers_from_form = set(map(int, form.checkAnswers.data))
         correct_answers = set()
         incorrect_answers = set()
@@ -64,7 +65,7 @@ def count_correct_answers(form, question):
 
     return result
 
-
+# функция считывает все вопросы в массив и возвращает количеств корректных ответов
 def read_question_ids():
     correct_answers_count_ = 0
     db_sess = db_session.create_session()
@@ -93,7 +94,7 @@ def reset_user(user_id):
 def index():
     if not current_user.is_authenticated:
         return redirect("/login")
-
+    # проверяет, что пользователь зашел первый раз
     if current_user.id not in users_data:
         users_data[current_user.id] = {'current_question_index': 0, 'correct_answers': 0}
 
@@ -102,6 +103,8 @@ def index():
         [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
         users_data[current_user.id]['correct_answers'] += count_correct_answers(form, question)
         correct_answers = users_data[current_user.id]['correct_answers']
+        # проверка последний ли вопрос
+        # если не последний, то создается новая форма
         if users_data[current_user.id]['current_question_index'] < (len(question_ids) - 1):
             users_data[current_user.id]['current_question_index'] += 1
             [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])

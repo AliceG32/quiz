@@ -4,7 +4,7 @@
 <h1>Вопрос {{ current_question_index }} из {{ total_questions }}</h1>
 <div class="col-md6 border rounded">
 
-    <form action="" method=post class="p-3">
+    <form action="" method=post class="p-3 shadow-lg">
             <legend>{{ question.text }}</legend>
             {{ form.hidden_tag() }}
             {% if question.is_radio() %}

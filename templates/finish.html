@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="col-md6 border rounded p-3 m-3">
+<div class="col-md6 border rounded p-3 m-3 shadow-lg">
+    <h2>Правильные ответы: {{ correct_count }} из {{ correct_answers_count }} ({{ correct_percent }}%)</h2>
+    {% if current_total_correct_answers != 0 and current_correct_answers != 0 %}
+        <h2>Ваш лучший результат: {{ current_correct_answers }} из {{ current_total_correct_answers }} ({{ current_correct_percent }}%)</h2>
+    {% endif %}
     <a class="btn btn-primary" href="/" role="button">Ответить на вопросы снова</a>
 </div>
 {% endblock %}

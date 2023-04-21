@@ -12,5 +12,6 @@ class Answer(SqlAlchemyBase, UserMixin):
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     question_id = Column(sqlalchemy.Integer, ForeignKey('questions.id'))
-    text = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    text = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    correct = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False)
     question = orm.relationship('Question')

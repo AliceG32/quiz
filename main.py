@@ -14,6 +14,7 @@ app.config['SECRET_KEY'] = 'qwwqrwqrg44t5gfdgfd'
 login_manager = LoginManager()
 login_manager.init_app(app)
 question_ids = []
+correct_answers_count = 0
 users_data = {}
 
 
@@ -38,12 +39,41 @@ def generate_form(question_id):
     return [form, question]
 
 
+def count_correct_answers(form, question):
+    result = 0
+    if question.is_radio():
+        for a in question.answers:
+            if a.correct and a.id == form.radioAnswers.data:
+                result += 1
+                break
+    else:
+        answers_from_form = set(map(int, form.checkAnswers.data))
+        correct_answers = set()
+        incorrect_answers = set()
+        for a in question.answers:
+            if a.correct:
+                correct_answers.add(a.id)
+            else:
+                incorrect_answers.add(a.id)
+        result = len(correct_answers.intersection(answers_from_form)) - len(
+            incorrect_answers.intersection(answers_from_form))
+    if result < 0:
+        result = 0
+
+    return result
+
+
 def read_question_ids():
+    correct_answers_count_ = 0
     db_sess = db_session.create_session()
     questions = db_sess.query(Question).order_by(Question.id).all()
     for question in questions:
         question_ids.append(question.id)
-    pass
+        for a in question.answers:
+            if a.correct:
+                correct_answers_count_ += 1
+
+    return correct_answers_count_
 
 
 @app.route('/logout')
@@ -59,31 +89,65 @@ def reset_user(user_id):
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
+    db_sess = db_session.create_session()
     if not current_user.is_authenticated:
         return redirect("/login")
 
     if current_user.id not in users_data:
-        users_data[current_user.id] = {'current_question_index': 0}
+        users_data[current_user.id] = {'current_question_index': 0, 'correct_answers': 0}
 
     [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
-
     if form.validate_on_submit():
+        [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
+        users_data[current_user.id]['correct_answers'] += count_correct_answers(form, question)
+        correct_answers = users_data[current_user.id]['correct_answers']
         if users_data[current_user.id]['current_question_index'] < (len(question_ids) - 1):
             users_data[current_user.id]['current_question_index'] += 1
             [form, question] = generate_form(question_ids[users_data[current_user.id]['current_question_index']])
         else:
             reset_user(current_user.id)
-            return render_template("finish.html")
-    else:
-        print(form.errors)
+            current_correct_answers = current_user.correct_answers
+            current_total_correct_answers = current_user.total_correct_answers
+
+            if current_total_correct_answers != 0:
+                current_correct_percent = int((100 * current_correct_answers / current_total_correct_answers))
+            else:
+                current_correct_percent = 0
+
+            if correct_answers_count != 0:
+                correct_percent = int((100 * correct_answers / correct_answers_count))
+            else:
+                correct_percent = 0
+
+            if correct_percent > current_correct_percent:
+                db_sess = db_session.create_session()
+                user = db_sess.query(User).filter(User.id == current_user.id).first()
+                user.correct_answers = correct_answers
+                user.total_correct_answers = correct_answers_count
+                db_sess.commit()
+
+            if correct_percent > current_correct_percent:
+                current_correct_answers = correct_answers
+                current_total_correct_answers = correct_answers_count
+                current_correct_percent = correct_percent
+
+            return render_template("finish.html", correct_count=correct_answers,
+                                   correct_answers_count=correct_answers_count,
+                                   correct_percent=correct_percent,
+                                   current_total_correct_answers=current_total_correct_answers,
+                                   current_correct_answers=current_correct_answers,
+                                   current_correct_percent=current_correct_percent
+                                   )
+
     return render_template("index.html", question=question, form=form,
                            current_question_index=users_data[current_user.id]['current_question_index'] + 1,
                            total_questions=len(question_ids))
 
+
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
-    return db_sess.query(User).get(user_id)
+    return db_sess.query(User).filter(User.id == user_id).first()
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -128,5 +192,5 @@ def reqister():
 
 if __name__ == '__main__':
     db_session.global_init("db/data.db")
-    read_question_ids()
+    correct_answers_count = read_question_ids()
     app.run(port=8081, host='127.0.0.1')

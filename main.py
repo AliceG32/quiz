@@ -58,6 +58,7 @@ def count_correct_answers(form, question):
                 correct_answers.add(a.id)
             else:
                 incorrect_answers.add(a.id)
+        #ищем пересечение корректных и некорректных вопросов
         result = len(correct_answers.intersection(answers_from_form)) - len(
             incorrect_answers.intersection(answers_from_form))
     if result < 0:
@@ -184,8 +185,7 @@ def reqister():
                                    message="Такой пользователь уже есть")
         user = User(
             name=form.name.data,
-            email=form.email.data,
-            about=form.about.data
+            email=form.email.data
         )
         user.set_password(form.password.data)
         db_sess.add(user)
